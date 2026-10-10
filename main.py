@@ -1,38 +1,32 @@
-"""
-Simple UI state helper: manages a named state and notifies listeners on change.
-"""
+"""A tiny helper for UI state management."""
+from typing import Any, Callable, Dict, List
 
-class UIStateHelper:
-    def __init__(self, initial=None):
-        self._state = initial
-        self._listeners = []
+class UIState:
+    """Manages key-value UI state and notifies listeners on changes."""
+    def __init__(self) -> None:
+        self._data: Dict[str, Any] = {}
+        self._listeners: Dict[str, List[Callable[[Any], None]]] = {}
 
-    @property
-    def state(self):
-        return self._state
+    def set_state(self, key: str, value: Any) -> None:
+        self._data[key] = value
+        if key in self._listeners:
+            for cb in self._listeners[key]:
+                cb(value)
 
-    def set(self, value):
-        if value != self._state:
-            self._state = value
-            for callback in self._listeners:
-                callback(self._state)
+    def get_state(self, key: str) -> Any:
+        return self._data.get(key)
 
-    def toggle(self):
-        if isinstance(self._state, bool):
-            self.set(not self._state)
-
-    def register(self, callback):
-        self._listeners.append(callback)
+    def register_listener(self, key: str, callback: Callable[[Any], None]) -> None:
+        self._listeners.setdefault(key, []).append(callback)
 
 if __name__ == "__main__":
-    import time
+    state = UIState()
 
-    def listener(state):
-        print(f"[Listener] State changed to: {state}")
+    def theme_changed(new):
+        print(f"Theme updated to: {new}")
 
-    ui = UIStateHelper(False)
-    ui.register(listener)
-    print(f"Initial state: {ui.state}")
-    for _ in range(5):
-        ui.toggle()
-        time.sleep(0.5)
+    state.register_listener("theme", theme_changed)
+
+    print("Initial theme:", state.get_state("theme"))
+    state.set_state("theme", "dark")
+    state.set_state("theme", "light")
